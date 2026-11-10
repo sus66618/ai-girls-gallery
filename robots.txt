@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://sus66618.github.io/ai-girls-gallery/sitemap.xml

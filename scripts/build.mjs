@@ -5,7 +5,7 @@ import sharp from 'sharp';
 
 const root = path.resolve(import.meta.dirname, '..');
 const categories = ['立绘', '立绘系列', '插画'];
-const base = 'https://sus66618.github.io/ai-girls-gallery/';
+const repository = 'https://github.com/sus66618/ai-girls-gallery';
 const items = [];
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const href = value => value.split('/').map(encodeURIComponent).join('/');
@@ -33,16 +33,33 @@ async function walk(folder) {
 }
 for (const category of categories) await walk(category);
 await fs.writeFile(path.join(root,'gallery.json'), JSON.stringify(items,null,2) + '\n');
-const cards = items.map(item=>`<article class="card" data-id="${item.id}"><button class="art" data-open="${item.id}" aria-label="查看 ${escape(item.title)}"><img src="${item.preview}" width="${item.width}" height="${item.height}" loading="lazy" decoding="async" alt="${escape(item.category+' / '+item.title)}"></button><div class="caption"><div><span>${escape(item.category)}</span><h3>${escape(item.title)}</h3></div><a class="download-icon" href="${item.url}" download="${escape(item.filename)}" aria-label="下载原图 ${escape(item.title)}">↓</a></div></article>`).join('\n');
 const collections = [...new Set(items.map(x=>x.collection))];
-const cover = items.find(x=>x.category === '插画') || items[0];
-await sharp(path.join(root,cover.path)).resize(1200,630,{fit:'contain',background:'#f4f0e8'}).jpeg({quality:85}).toFile(path.join(root,'social-cover.jpg'));
-let html = await fs.readFile(path.join(root,'scripts/template.html'),'utf8');
-const featured = ['GPT','Claude','DeepSeek'].map(name => items.find(item => item.category === '立绘' && item.collection === name));
-const heroArt = featured.filter(Boolean).map(item => `<a href="#gallery" class="hero-portrait"><img src="${item.preview}" alt="${escape(item.collection)} AI娘角色立绘" width="${item.width}" height="${item.height}"><span>${escape(item.collection)}</span></a>`).join('');
-const values = {HERO_ART:heroArt,CARDS:cards,COUNT:items.length,SIZE:Math.round(items.reduce((s,x)=>s+x.bytes,0)/1048576),COLLECTIONS:collections.map(x=>`<option>${escape(x)}</option>`).join('')};
-html = html.replace(/\{\{(HERO_ART|CARDS|COUNT|SIZE|COLLECTIONS)\}\}/g, (_,key)=>values[key]);
-await fs.writeFile(path.join(root,'index.html'),html);
-await fs.writeFile(path.join(root,'robots.txt'),`User-agent: *\nAllow: /\nSitemap: ${base}sitemap.xml\n`);
-await fs.writeFile(path.join(root,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}</loc></url></urlset>\n`);
+
+// GitHub 原生 README 图墙，缩略图点击后打开对应原图。
+function imageTable(group, folder) {
+  const relative = target => href(path.posix.relative(folder, target));
+  const rows = [];
+  for (let index = 0; index < group.length; index += 3) {
+    const cells = group.slice(index,index+3).map(item => `<td align="center" width="33%"><a href="${relative(item.path)}"><img src="${relative(item.preview)}" height="230" alt="${escape(item.title)}"></a><br>${escape(item.title)}<br><a href="${relative(item.path)}">查看原图</a> · <a href="https://raw.githubusercontent.com/sus66618/ai-girls-gallery/main/${item.url}">下载原图</a></td>`);
+    rows.push('<tr>' + cells.join('') + '</tr>');
+  }
+  return '<table>\n' + rows.join('\n') + '\n</table>';
+}
+
+const folders = new Set(items.map(item => path.posix.dirname(item.path)));
+for (const category of categories) folders.add(category);
+for (const folder of folders) {
+  const group = items.filter(item => item.path.startsWith(folder+'/'));
+  const heading = folder.split('/').at(-1);
+  const back = href(path.posix.relative(folder,'README.md'));
+  const subfolders = [...new Set(group.map(item => path.posix.dirname(item.path)))].filter(name => name !== folder);
+  const navigation = subfolders.map(name => `- [${name.split('/').at(-1)}](${href(path.posix.relative(folder,name))}/)`).join('\n');
+  await fs.writeFile(path.join(root,folder,'README.md'), `# ${heading}\n\n[返回图库首页](${back}) · ${group.length} 张原图\n\n点击缩略图查看原图。打开文件后，可使用 GitHub 的下载按钮保存原文件。\n\n${navigation}\n\n${imageTable(group,folder)}\n`);
+}
+const names = ['GPT','Claude','DeepSeek','Gemini','千问','Grok','Kimi','MiniMax','智谱','混元','豆包（Seed）'];
+const featured = names.map(name => items.find(item => item.category === '立绘' && item.collection === name)).filter(Boolean);
+const categoryLinks = categories.map(category => `| [${category}](${href(category)}/) | ${items.filter(item=>item.category===category).length} |`).join('\n');
+const series = [...new Set(items.filter(item=>item.category==='立绘系列').map(item=>item.collection))].map(name=>`[${name}](${href('立绘系列/'+name)}/)`).join(' · ');
+const readme = `# AI娘图库 · AI Girls Gallery\n\n**${items.length} 张原始图片 · 11 位 AI 娘 · 13 个服装主题系列**\n\nAI 拟人角色的立绘、换装与故事插画。直接在 GitHub 浏览，点击缩略图查看大图，进入原图页面后点击下载按钮保存。\n\n**[全部原图 ZIP](${repository}/releases/latest/download/ai-girls-all.zip) · [分类压缩包](${repository}/releases/latest) · [使用与来源](USAGE.md)**\n\n## 认识她们\n\n${imageTable(featured,'')}\n\n## 浏览全部作品\n\n| 分类 | 原图数量 |\n| --- | --- |\n${categoryLinks}\n\n### 主题系列\n\n${series}\n\n## 下载\n\n| 压缩包 | 内容 |\n| --- | --- |\n| [全部作品](${repository}/releases/latest/download/ai-girls-all.zip) | 298 张完整原图 |\n| [立绘](${repository}/releases/latest/download/characters.zip) | 91 张 |\n| [立绘系列](${repository}/releases/latest/download/collections.zip) | 143 张 |\n| [插画](${repository}/releases/latest/download/illustrations.zip) | 64 张 |\n\n原始图片合计约 506 MiB。压缩包保留云盘的文件夹层级、文件名和图片格式。仓库的 gallery.json 记录每张原图的尺寸、字节数和 SHA-256。缩略图仅供浏览，下载入口提供原始文件。\n\n## 创作与署名\n\n- 原始角色立绘与设计来自 Bilibili 创作者 **[ZipZipPipe](https://space.bilibili.com/4168597)**。\n- 其他衍生立绘、服装系列与插画由 **sus66618** 策划整理，使用 GPT 生图工具生成，模型名称按整理者提供记为 **Image 2.5**。\n- 整理者对其有权许可的新增生成作品开放免费使用、修改、商用和再分发，无强制署名要求。原始第三方作品和标识依照各自权利人的许可使用，详见 [USAGE.md](USAGE.md)。\n\n喜欢她们的话，欢迎 **Star、分享链接，或者在 Issue 展示二创作品**。\n\n## English\n\nAn open collection of **298 AI girl / AI gijinka artworks**, featuring GPT, Claude, DeepSeek, Gemini, Qwen, Grok, Kimi, MiniMax, GLM, Hunyuan and Seed. Browse character art, themed outfits and illustrations directly on GitHub. Click thumbnails to view originals, or download complete ZIP archives from [Releases](${repository}/releases/latest).\n\nOriginal designs are credited to **ZipZipPipe**. Additional AI-generated artwork is curated by **sus66618**. See [usage and credits](USAGE.md) for permissions. Stars, shares and fan creations are welcome.\n\n## 更新预览\n\n将新图放入三个素材目录后，运行 \`npm ci\` 和 \`npm run build\`，生成缩略图、各级 README 图墙及文件校验清单。预览生成脚本采用 MIT 许可。\n`;
+await fs.writeFile(path.join(root,'README.md'),readme);
 console.log(JSON.stringify({images:items.length,bytes:items.reduce((s,x)=>s+x.bytes,0),collections:collections.length}));

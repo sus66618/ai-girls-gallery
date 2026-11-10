@@ -12,9 +12,9 @@ AI 娘原始立绘与角色设计来源于 Bilibili 创作者 **ZipZipPipe**。�
 
 这项许可范围限于整理者可以授予的权利。原始角色立绘、角色设计及第三方品牌标识的使用条件由相应权利人决定。本仓库尚未逐项核实原作者的商用与再许可条款，不能代替原作者对原始作品作出无限制授权。
 
-## 网站代码
+## 预览生成脚本
 
-网站代码依照仓库的 MIT LICENSE 使用。
+预览生成脚本依照仓库的 MIT LICENSE 使用。
 
 ## English
 
@@ -22,4 +22,4 @@ Original character artwork and designs are credited to **ZipZipPipe** on Bilibil
 
 To the extent of the curator's rights, permission is granted free of charge to use, copy, modify, distribute and commercially use the additional AI-generated works, without mandatory attribution. Voluntary credit and links back to this gallery are appreciated.
 
-Original third-party artwork, character designs and trademarks retain the terms of their respective rights holders. Their commercial-use and sublicensing permissions have not been individually verified. Website source code is MIT-licensed.
+Original third-party artwork, character designs and trademarks retain the terms of their respective rights holders. Their commercial-use and sublicensing permissions have not been individually verified. Preview-generation source code is MIT-licensed.
